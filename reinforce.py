@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-import numpy as np
 
 
 class Net(nn.Module):
@@ -23,19 +22,21 @@ class Net(nn.Module):
 
 
 class Agent:
-    def __init__(self, net, env, gamma=0.99, optimizer=optim.Adam, lr=1e-3):
+    def __init__(self, net, env, optimizer=optim.Adam, gamma=0.99, lr=1e-3):
         self.net = net
         self.env = env
         self.gamma = gamma
         self.optimizer = optimizer(net.parameters(), lr=lr)
-        self.buffer = []
+
+        self.states = []
+        self.actions = []
+        self.rewards = []
+        self.logits = []
 
     def _select_action(self, state):
         state = torch.as_tensor(state, dtype=torch.float32).unsqueeze(0)
-        # print('STATE SHAPE: ', state.shape)
-        with torch.no_grad():
-            logits = self.net(state)
-            probs = F.softmax(logits, dim=-1)
+        logits = self.net(state)
+        probs = F.softmax(logits, dim=-1)
 
         action = torch.multinomial(probs, num_samples=1).item()
         return action, logits
@@ -48,52 +49,65 @@ class Agent:
             res.append(sum_r)
         return list(reversed(res))
 
-    def _prepare_buffer(self, gamma_rewards):  # ToDo rewrite logic
-        assert len(self.buffer) == len(gamma_rewards)
-
-        self.buffer = np.array(self.buffer)  # s, a, r, s'
-        states = self.buffer[:, 0]
-        actions = self.buffer[:, 1]
-
-        gamma_rewards = torch.Tensor(gamma_rewards).reshape(-1, 1)
-        gamma_rewards = (gamma_rewards - gamma_rewards.mean()) / (gamma_rewards.std() + 1e-8) # Normalizing
-
-        return states, actions, gamma_rewards  # s, a, R
+    def _prepare_buffer(self, gamma_rewards):
+        # states уже list[Tensor], делаем batch
+        states = torch.stack(self.states, dim=0)  # [T, *obs_shape]
+        actions = torch.tensor(self.actions, dtype=torch.long)  # [T]
+        returns = torch.tensor(gamma_rewards, dtype=torch.float32)  # [T]
+        returns = (returns - returns.mean()) / (returns.std() + 1e-8)
+        returns = returns.unsqueeze(1)  # [T,1]
+        return states, actions, returns
 
     def _extract_rewards(self):
         rewards = [row[2] for row in self.buffer]
         return rewards
 
     def _play_episode(self):
-        self.buffer = []
+        self.states.clear()
+        self.actions.clear()
+        self.rewards.clear()
+        self.logits.clear()
+
         obs, info = self.env.reset()
-        episode_logits = []
         while True:
             action, logits = self._select_action(obs)
-            new_obs, reward, terminated, truncated, info = self.env.step(action)
-            exp = (obs, action, reward, logits.squeeze(0))
-            self.buffer.append(exp)
-            episode_logits.append(logits)
-            obs = new_obs
+            self.states.append(torch.as_tensor(obs, dtype=torch.float32))
+            self.actions.append(action)
+            self.logits.append(logits.squeeze(0))
+
+            obs, reward, terminated, truncated, info = self.env.step(action)
+            self.rewards.append(reward)
+
             if truncated or terminated:
                 break
-        return torch.cat(episode_logits)
 
-    def _calc_loss(self, logits, gamma_rewards, states, actions):
+        all_logits = torch.cat([l.unsqueeze(0) for l in self.logits], dim=0)
+        return all_logits
+
+    def _calc_loss(self, logits, returns, actions):
         log_probs = F.log_softmax(logits, dim=-1)
-        n_steps = len(actions)
-        selected_log_probs = log_probs[torch.arange(n_steps), actions]
-        loss = -(selected_log_probs * gamma_rewards).sum()
+        T = logits.shape[0]
+
+        # actions: [T], returns: [T,1]
+        selected = log_probs[torch.arange(T), actions]  # → [T]
+
+        # loss: -(sum over t) return_t * log π(a_t|s_t)
+        loss = -(selected * returns.squeeze(1)).sum()
         return loss
 
     def learn(self, num_episodes):
+        self.episode_rewards = []
         for episode in range(num_episodes):
             all_logits = self._play_episode()
-            rewards = self._extract_rewards()
-            gamma_rewards = self._gamma_rewards(rewards)
-            states, actions, gamma_rewards = self._prepare_buffer(gamma_rewards) # s, a, R
 
-            loss = self._calc_loss(all_logits, gamma_rewards, states, actions)
+            total_reward = sum(self.rewards)  # 1) суммируем reward из буфера
+            self.episode_rewards.append(total_reward)  # 2) сохраняем в историю
+            print(f"Episode {episode + 1}\tTotal reward: {total_reward:.2f}")
+
+            gamma_rs = self._gamma_rewards(self.rewards)
+            states, actions, returns = self._prepare_buffer(gamma_rs) # s, a, R
+
+            loss = self._calc_loss(all_logits, returns, actions)
 
             self.optimizer.zero_grad()
             loss.backward()
