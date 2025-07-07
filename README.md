@@ -49,7 +49,8 @@ consists of the following steps:
 3. Install requirements:
 
 ```bash
-   pip install -r requirements.txt
+   pip install torch
+   pip install gymnasium
 ```
 
 ---
