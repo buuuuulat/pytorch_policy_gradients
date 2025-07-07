@@ -41,11 +41,11 @@ consists of the following steps:
 
 2. (Optional) Create & activate a virtual environment:
 
-   ```bash
+```bash
    python3 -m venv venv
    source venv/bin/activate    # macOS/Linux
    venv\Scripts\activate       # Windows
-   ```
+```
 3. Install requirements:
 
 ```bash
