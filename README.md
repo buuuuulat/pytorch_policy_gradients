@@ -59,11 +59,8 @@ consists of the following steps:
 Train a policy on CartPole‑v1 for 1,500 episodes, then evaluate with rendering:
 
 ```bash
-# Train
-python play.py --train_episodes 1500
-
-# Evaluate / Play with human render
-python play.py --play --render
+# Train and Evaluate / Play with human render
+python play.py
 ```
 
 ---
