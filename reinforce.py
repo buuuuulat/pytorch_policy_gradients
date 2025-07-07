@@ -50,12 +50,15 @@ class Agent:
 
     def _prepare_buffer(self, gamma_rewards):  # ToDo rewrite logic
         assert len(self.buffer) == len(gamma_rewards)
-        self.buffer = torch.Tensor(self.buffer)
+
+        self.buffer = np.array(self.buffer)  # s, a, r, s'
+        states = self.buffer[:, 0]
+        actions = self.buffer[:, 1]
+
         gamma_rewards = torch.Tensor(gamma_rewards).reshape(-1, 1)
-        gamma_rewards = (gamma_rewards -gamma_rewards.mean()) / (gamma_rewards.std() + 1e-8) # Normalizing
-        self.buffer = torch.hstack([self.buffer, gamma_rewards]) # s, a, r, s', R
-        self.states = self.buffer[:, 0]
-        self.actions = self.buffer[:, 1]
+        gamma_rewards = (gamma_rewards - gamma_rewards.mean()) / (gamma_rewards.std() + 1e-8) # Normalizing
+
+        return states, actions, gamma_rewards  # s, a, R
 
     def _extract_rewards(self):
         rewards = [row[2] for row in self.buffer]
@@ -76,22 +79,21 @@ class Agent:
                 break
         return torch.cat(episode_logits)
 
-    def _calc_loss(self, logits, gamma_rewards):
+    def _calc_loss(self, logits, gamma_rewards, states, actions):
         log_probs = F.log_softmax(logits, dim=-1)
-        n_steps = len(self.actions)
-        selected_log_probs = log_probs[torch.arange(n_steps), self.actions]
+        n_steps = len(actions)
+        selected_log_probs = log_probs[torch.arange(n_steps), actions]
         loss = -(selected_log_probs * gamma_rewards).sum()
         return loss
 
     def learn(self, num_episodes):
         for episode in range(num_episodes):
-            logits = self._play_episode()
-
+            all_logits = self._play_episode()
             rewards = self._extract_rewards()
             gamma_rewards = self._gamma_rewards(rewards)
-            self._prepare_buffer(gamma_rewards) # s, a, r, s', R
+            states, actions, gamma_rewards = self._prepare_buffer(gamma_rewards) # s, a, R
 
-            loss = self._calc_loss(logits, gamma_rewards)
+            loss = self._calc_loss(all_logits, gamma_rewards, states, actions)
 
             self.optimizer.zero_grad()
             loss.backward()
