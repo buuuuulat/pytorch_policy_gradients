@@ -24,9 +24,9 @@ consists of the following steps:
 1. **Network initialization**  
 2. **Full episode play**  
 3. **Calculation of the discounted return** for every step:
-$Q_{k,t} = \sum_{i=0}^{T-t} \gamma^i r_{t+i}$  
+![Return](https://latex.codecogs.com/svg.image?\%20$Q_{k,t}%20=%20\sum_{i=0}^{T-t}%20\gamma^i%20r_{t+i}$)
 4. **Calculation of the Loss Function**:
-$L = -\sum_{t=0}^{T} \log \pi_\theta(a_t \mid s_t)\,R_t$  
+![Loss](https://latex.codecogs.com/svg.image?\%20$L%20=%20-\sum_{t=0}^{T}%20\log%20\pi_\theta(a_t%20\mid%20s_t)\,R_t$)
 5. **Optimizer update**  
 6. **Repeat** from step 2 until convergence  
 
