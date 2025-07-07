@@ -96,6 +96,7 @@ class Agent:
         return loss
 
     def learn(self, num_episodes):
+        self.net.train()
         self.episode_rewards = []
         for episode in range(num_episodes):
             all_logits = self._play_episode()
@@ -112,3 +113,30 @@ class Agent:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+
+    def play(self, render=False):
+        self.net.eval()
+
+        obs, info = self.env.reset()
+        total_reward = 0.0
+        if render:
+            self.env.render()
+
+        while True:
+            with torch.no_grad():
+                state_t = torch.as_tensor(obs, dtype=torch.float32).unsqueeze(0)
+                logits  = self.net(state_t)
+                probs   = F.softmax(logits, dim=-1)
+                action  = torch.multinomial(probs, num_samples=1).item()
+
+            obs, reward, terminated, truncated, info = self.env.step(action)
+            total_reward += reward
+
+            if render:
+                self.env.render()
+
+            if terminated or truncated:
+                break
+
+        self.net.train()
+        return total_reward
