@@ -23,10 +23,10 @@ This is the [Policy Gradient Method](https://en.wikipedia.org/wiki/Policy_gradie
 consists of the following steps:
 1. **Network initialization**  
 2. **Full episode play**  
-3. **Calculation of the discounted return** for every step:  
-   Inline: $Q_{k,t} = \sum_{i=0}^{T-t} \gamma^i r_{t+i}$  
-4. **Calculation of the Loss Function**:  
-   Inline: $L = -\sum_{t=0}^{T} \log \pi_\theta(a_t \mid s_t)\,R_t$  
+3. **Calculation of the discounted return** for every step:
+$Q_{k,t} = \sum_{i=0}^{T-t} \gamma^i r_{t+i}$  
+4. **Calculation of the Loss Function**:
+$L = -\sum_{t=0}^{T} \log \pi_\theta(a_t \mid s_t)\,R_t$  
 5. **Optimizer update**  
 6. **Repeat** from step 2 until convergence  
 
