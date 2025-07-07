@@ -1,4 +1,4 @@
-# PyTorch implementation of Monte Carlo Policy Gradient Method (REINFORCE) algorithm
+# PyTorch implementation of Monte Carlo Policy Gradient Method (REINFORCE Algorithm)
 
 <p align="center">
   <img src="https://gymnasium.farama.org/_images/lunar_lander.gif" width="300"/>
