@@ -35,8 +35,8 @@ consists of the following steps:
 ### Installation
 1. Clone the repository:  
 ```bash
-   git https://github.com/buuuuulat/pytorch_policy_gradients.git
-   cd pytorch_policy_gradients
+   git clone https://github.com/yourusername/policy-gradients.git
+   cd policy-gradients
 ```
 
 2. (Optional) Create & activate a virtual environment:
