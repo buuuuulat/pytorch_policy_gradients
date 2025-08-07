@@ -1,4 +1,4 @@
-# PyTorch implementation of Monte Carlo Policy Gradient Method (REINFORCE Algorithm)
+# PyTorch Implementation of Policy Gradient Methods (REINFORCE & Baseline)
 
 <p align="center">
   <img src="https://gymnasium.farama.org/_images/lunar_lander.gif" width="300"/>
@@ -7,135 +7,172 @@
 ---
 
 ### Table of Contents
-* [Algorithm overview](#algorithm-overview)
+* [Algorithms Overview](#algorithms-overview)
+* [Implementation Details](#implementation-details)
+* [Key Features](#key-features)
 * [Installation](#installation)
 * [Run](#run)
-* [Usage examples](#usage-examples)
-* [Configuration & Hyperparameters](#configuration--hyperparameters)
+* [Usage Examples](#usage-examples)
+* [Results & Comparisons](#results--comparisons)
 * [Dependencies](#dependencies)
 * [Contributing](#contributing)
 * [License](#license)
 
 ---
 
-### Algorithm Overview
-This is the [Policy Gradient Method](https://en.wikipedia.org/wiki/Policy_gradient_method) that
-consists of the following steps:
-1. **Network initialization**  
-2. **Full episode play**  
-3. **Calculation of the discounted return** for every step:
-![Return](https://latex.codecogs.com/svg.image?\%20$Q_{k,t}%20=%20\sum_{i=0}^{T-t}%20\gamma^i%20r_{t+i}$)
-4. **Calculation of the Loss Function**:
-![Loss](https://latex.codecogs.com/svg.image?\%20$L%20=%20-\sum_{t=0}^{T}%20\log%20\pi_\theta(a_t%20\mid%20s_t)\,R_t$)
-5. **Optimizer update**  
-6. **Repeat** from step 2 until convergence
+### Algorithms Overview
+
+#### 1. REINFORCE (Vanilla Policy Gradient)
+The basic [Policy Gradient Method](https://en.wikipedia.org/wiki/Policy_gradient_method) implementation:
+1. **Full episode play**
+2. **Calculate discounted returns**:
+   ![Return](https://latex.codecogs.com/svg.image?\%20$Q_{k,t}%20=%20\sum_{i=0}^{T-t}%20\gamma^i%20r_{t+i}$)
+3. **Normalize returns**
+4. **Calculate loss**:
+   ![Loss](https://latex.codecogs.com/svg.image?\%20$L%20=%20-\sum_{t=0}^{T}%20\log%20\pi_\theta(a_t%20\mid%20s_t)\,R_t$)
+5. **Update policy**
+
+#### 2. REINFORCE with Baseline
+Enhanced version with reduced variance:
+- Uses reward baseline: `b = 𝔼[R]`
+- Advantage function: `A(s,a) = R - b`
+- **2x faster convergence** compared to vanilla REINFORCE
+- More stable learning dynamics
+
+---
+
+### Implementation Details
+Core components in the code:
+
+1. **Network Architecture** (`Net` class):
+```python
+nn.Sequential(
+    nn.Linear(observation_size, 128),
+    nn.ReLU(),
+    nn.Linear(128, action_size)
+)
+```
+
+2. **Agent Workflow**:
+```python
+# 1. Collect episode
+all_logits = self._play_episode()
+
+# 2. Calculate rewards
+gamma_rs = self._gamma_rewards(self.rewards)
+
+# 3. Compute advantage (baseline only)
+baseline = gamma_rs.mean()
+advantage = gamma_rs - baseline
+
+# 4. Update policy
+loss = self._calc_loss(all_logits, advantage)
+loss.backward()
+```
+
+3. **Key Improvements in Baseline**:
+- Advantage normalization: `(advantage - mean)/std`
+- Reduced gradient variance
+- Faster convergence (see Results section)
+
+---
+
+### Key Features
+- 🚀 **Clean PyTorch implementations**
+- ⏱️ **Time monitoring** per episode and total training
+- 📊 **TensorBoard logging** for all metrics
+- 📈 **Performance comparison** between algorithms
+- 🎮 **Gymnasium environment support**
 
 ---
 
 ### Installation
 1. Clone the repository:  
 ```bash
-   git clone https://github.com/yourusername/policy-gradients.git
-   cd policy-gradients
+git clone https://github.com/yourusername/policy-gradients.git
+cd policy-gradients
 ```
 
-2. (Optional) Create & activate a virtual environment:
-
+2. Install requirements:
 ```bash
-   python3 -m venv venv
-   source venv/bin/activate    # macOS/Linux
-   venv\Scripts\activate       # Windows
-```
-3. Install requirements:
-
-```bash
-   pip install torch
-   pip install gymnasium
+pip install torch gymnasium numpy
 ```
 
 ---
 
 ### Run
 
-Train a policy on CartPole‑v1 for 1,500 episodes, then evaluate with rendering:
-
-```bash
-# Train and Evaluate / Play with human render
-python play.py
-```
----
-
-### Usage examples
-
-#### In Python scripts
-
+#### Evaluate trained policy:
 ```python
-import gymnasium as gym
-from reinforce import Net, Agent
-
-# 1. Setup training env (no rendering)
-train_env = gym.make("CartPole-v1")
-net       = Net(in_features=train_env.observation_space.shape[0],
-                out_features=train_env.action_space.n)
-agent     = Agent(net, train_env)
-
-# 2. Train
-agent.learn(1500)
-
-# 3. Evaluate in human‑render mode
-eval_env  = gym.make("CartPole-v1", render_mode="human")
+eval_env = gym.make("LunarLander-v3", render_mode="human")
 eval_agent = Agent(net, eval_env)
-reward    = eval_agent.play(render=True)
-print("Evaluation reward:", reward)
-
-# 4. Close the evaluation env
-eval_env.close()
+score = eval_agent.play(render=True)
 ```
 
 ---
 
-### Configuration & Hyperparameters
+### Usage Examples
 
-You can tweak the following parameters in `play.py` or directly in your script:
+#### Training and Evaluation
+```python
+from reinforce import Net as ReinforceNet, Agent as ReinforceAgent
+from baseline import Net as BaselineNet, Agent as BaselineAgent
 
-* **`learning_rate`** (default `1e-3`)
-* **`gamma`** (discount factor, default `0.99`)
-* **Network architecture** (hidden sizes: 128 → 256 → 128)
-* **Batch normalization / baselines** (not implemented by default)
+# Vanilla REINFORCE
+env = gym.make("LunarLander-v3")
+net = ReinforceNet(env.observation_space.shape[0], env.action_space.n)
+agent = ReinforceAgent(net, env)
+agent.learn(5000)
+
+# REINFORCE with Baseline
+env = gym.make("LunarLander-v3")
+net = BaselineNet(env.observation_space.shape[0], env.action_space.n)
+agent = BaselineAgent(net, env)
+agent.learn(2500)  # Half the episodes for same performance
+
+# Evaluation
+eval_env = gym.make("LunarLander-v3", render_mode="human")
+eval_agent = Agent(net, eval_env)
+score = eval_agent.play(render=True)
+```
+
+---
+
+### Results & Comparisons
+![Algorithm Comparison](data/comparison.png)
+
+**Key Findings:**
+- REINFORCE with Baseline achieves **2x faster convergence**
+- Baseline reduces variance leading to **smoother learning curves**
+- **Almost 2x higher rewards** thanks to the baseline
+
+| Metric                  | REINFORCE | REINFORCE+Baseline |
+|-------------------------|----------|-------------------|
+| Episodes to 200+ reward | -        | 1600              |
+| Training time           | 3.4 min  | 1.7 min           |
 
 ---
 
 ### Dependencies
-
-* Python 3.8+
-* [gymnasium](https://gymnasium.farama.org/)
-* [torch](https://pytorch.org/)
-* [numpy](https://numpy.org/)
-
-Install via:
-
-```bash
-pip install gymnasium torch numpy
-```
+- Python 3.8+
+- [PyTorch](https://pytorch.org/)
+- [Gymnasium](https://gymnasium.farama.org/)
+- [NumPy](https://numpy.org/)
 
 ---
 
 ### Contributing
-
-Contributions, issues, and feature requests are welcome!
-
+Contributions are welcome! Please follow these steps:
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/YourFeature`)
-3. Commit your changes (`git commit -m 'Add new feature'`)
-4. Push to the branch (`git push origin feature/YourFeature`)
+2. Create your feature branch (`git checkout -b feature/improvement`)
+3. Commit changes (`git commit -am 'Add new feature'`)
+4. Push to branch (`git push origin feature/improvement`)
 5. Open a Pull Request
 
 ---
 
 ### License
-
-This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
-This project is not intended for faster or better implementation
-of Policy Gradients algorithms, but for familiarization with them
+> **Educational Focus**: Clear implementations for learning Policy Gradient methods, with practical comparison between vanilla and baseline-enhanced versions.
