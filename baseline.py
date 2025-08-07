@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.tensorboard import SummaryWriter
+import numpy as np
 
 
 class Net(nn.Module):
@@ -100,9 +101,14 @@ class Agent:
             print(f"Episode {episode + 1}\tTotal reward: {total_reward:.2f}")
 
             gamma_rs = self._gamma_rewards(self.rewards)
-            states, actions, returns = self._prepare_buffer(gamma_rs) # s, a, R
 
-            loss = self._calc_loss(all_logits, returns, actions)
+            baseline = np.mean(self.episode_rewards)
+            scaled_rewards_np = np.array(self.rewards) - baseline
+            #print("SCALED", scaled_rewards_np, '\n', "NOT SCALED", self.rewards, '\n', "BASELINE", baseline)
+
+            #states, actions, returns = self._prepare_buffer(gamma_rs)  # s, a, R
+            actions = torch.tensor(self.actions, dtype=torch.int64)
+            loss = self._calc_loss(all_logits, scaled_rewards_np, actions)
 
             self.optimizer.zero_grad()
             loss.backward()
@@ -112,6 +118,7 @@ class Agent:
             self.writer.add_scalar('Mean_10_Reward', sum(self.episode_rewards[-10:]) / 10, episode)
             self.writer.add_scalar('Episode_Reward', total_reward, episode)
             self.writer.add_scalar('Steps_per_Episode', actions.shape[0], episode)
+            self.writer.add_scalar('Baseline', baseline, episode)
 
 
     def play(self, render=False):

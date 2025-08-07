@@ -28,7 +28,7 @@ consists of the following steps:
 4. **Calculation of the Loss Function**:
 ![Loss](https://latex.codecogs.com/svg.image?\%20$L%20=%20-\sum_{t=0}^{T}%20\log%20\pi_\theta(a_t%20\mid%20s_t)\,R_t$)
 5. **Optimizer update**  
-6. **Repeat** from step 2 until convergence  
+6. **Repeat** from step 2 until convergence
 
 ---
 
@@ -63,7 +63,6 @@ Train a policy on CartPole‑v1 for 1,500 episodes, then evaluate with rendering
 # Train and Evaluate / Play with human render
 python play.py
 ```
-
 ---
 
 ### Usage examples
@@ -137,3 +136,6 @@ Contributions, issues, and feature requests are welcome!
 
 This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for details.
 
+---
+This project is not intended for faster or better implementation
+of Policy Gradients algorithms, but for familiarization with them
