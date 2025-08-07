@@ -26,7 +26,7 @@ class Agent:
         self.env = env
         self.gamma = gamma
         self.optimizer = optimizer(net.parameters(), lr=lr)
-        self.writer = SummaryWriter(comment='_REINFORCE')
+        self.writer = SummaryWriter(comment='_BASELINE')
 
         self.states = []
         self.actions = []
@@ -71,7 +71,7 @@ class Agent:
         all_logits = torch.stack(self.logits, dim=0)
         return all_logits
 
-    def _calc_loss(self, logits, returns, actions):
+    def _calc_loss(self, logits, advantage, actions):
         log_probs = F.log_softmax(logits, dim=-1)
         T = logits.shape[0]
 
@@ -79,13 +79,13 @@ class Agent:
         selected = log_probs[torch.arange(T), actions]  # → [T]
 
         # loss: -(sum over t) return_t * log π(a_t|s_t)
-        loss = -(selected * returns).sum()
+        loss = -(selected * advantage).sum()
         return loss
 
     def learn(self, num_episodes):
         self.net.train()
         self.episode_rewards = []
-        start_time = time.time()
+        total_start_time = time.time()
 
         for episode in range(num_episodes):
             episode_start_time = time.time()
@@ -108,15 +108,24 @@ class Agent:
             loss.backward()
             self.optimizer.step()
 
-            current_time = time.time() - start_time
-
-
+            episode_time = time.time() - episode_start_time
 
             self.writer.add_scalar('Loss', loss.item(), episode)
             self.writer.add_scalar('Mean_10_Reward', sum(self.episode_rewards[-10:]) / 10, episode)
             self.writer.add_scalar('Episode_Reward', total_reward, episode)
             self.writer.add_scalar('Steps_per_Episode', actions.shape[0], episode)
             self.writer.add_scalar('Baseline', baseline, episode)
+            self.writer.add_scalar('Time_per_Episode', episode_time, episode)  # Новый лог времени
+
+        total_time = time.time() - total_start_time
+        avg_time = total_time / num_episodes
+        print(f"\nTotal training time: {total_time:.2f}s")
+        print(f"Average time per episode: {avg_time:.2f}s")
+        self.writer.add_scalar('Total_Training_Time', total_time)
+        self.writer.add_scalar('Average_Time_per_Episode', avg_time)
+
+        # Сохраняем все метрики в файл
+        self.writer.flush()
 
 
     def play(self, render=False):
