@@ -1,3 +1,4 @@
+import time
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -48,15 +49,6 @@ class Agent:
             res.append(sum_r)
         return list(reversed(res))
 
-    def _prepare_buffer(self, gamma_rewards):
-        # states уже list[Tensor], делаем batch
-        states = torch.stack(self.states, dim=0)  # [T, *obs_shape]
-        actions = torch.tensor(self.actions, dtype=torch.long)  # [T]
-        returns = torch.tensor(gamma_rewards, dtype=torch.float32)  # [T]
-        returns = (returns - returns.mean()) / (returns.std() + 1e-8)
-        returns = returns.unsqueeze(1)  # [T,1]
-        return states, actions, returns
-
     def _play_episode(self):
         self.states.clear()
         self.actions.clear()
@@ -76,7 +68,7 @@ class Agent:
             if truncated or terminated:
                 break
 
-        all_logits = torch.cat([l.unsqueeze(0) for l in self.logits], dim=0)
+        all_logits = torch.stack(self.logits, dim=0)
         return all_logits
 
     def _calc_loss(self, logits, returns, actions):
@@ -87,32 +79,38 @@ class Agent:
         selected = log_probs[torch.arange(T), actions]  # → [T]
 
         # loss: -(sum over t) return_t * log π(a_t|s_t)
-        loss = -(selected * returns.squeeze(1)).sum()
+        loss = -(selected * returns).sum()
         return loss
 
     def learn(self, num_episodes):
         self.net.train()
         self.episode_rewards = []
+        start_time = time.time()
+
         for episode in range(num_episodes):
+            episode_start_time = time.time()
+
             all_logits = self._play_episode()
 
             total_reward = sum(self.rewards)  # 1) суммируем reward из буфера
             self.episode_rewards.append(total_reward)  # 2) сохраняем в историю
             print(f"Episode {episode + 1}\tTotal reward: {total_reward:.2f}")
 
-            gamma_rs = self._gamma_rewards(self.rewards)
+            gamma_rs = np.array(self._gamma_rewards(self.rewards), dtype=np.float32)
+            baseline = gamma_rs.mean()
+            advantage = gamma_rs - baseline
+            advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
 
-            baseline = np.mean(self.episode_rewards)
-            scaled_rewards_np = np.array(self.rewards) - baseline
-            #print("SCALED", scaled_rewards_np, '\n', "NOT SCALED", self.rewards, '\n', "BASELINE", baseline)
-
-            #states, actions, returns = self._prepare_buffer(gamma_rs)  # s, a, R
             actions = torch.tensor(self.actions, dtype=torch.int64)
-            loss = self._calc_loss(all_logits, scaled_rewards_np, actions)
+            loss = self._calc_loss(all_logits, torch.tensor(advantage), actions)
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+
+            current_time = time.time() - start_time
+
+
 
             self.writer.add_scalar('Loss', loss.item(), episode)
             self.writer.add_scalar('Mean_10_Reward', sum(self.episode_rewards[-10:]) / 10, episode)
