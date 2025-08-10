@@ -16,6 +16,3 @@
 4. Rewrite `algorithms/baseline.py`
 5. Implement `algorithms/a2c`
 6. Implement other things
----
-
-
