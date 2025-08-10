@@ -4,6 +4,11 @@
   <img src="https://gymnasium.farama.org/_images/lunar_lander.gif" width="300"/>
 </p>
 
+**Check [refactored](https://github.com/buuuuulat/pytorch_policy_gradients/tree/refactored)
+branch for better experience**
+
+![Static Badge](https://img.shields.io/badge/status-WIP-blue)
+
 ---
 
 ### Table of Contents
