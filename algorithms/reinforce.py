@@ -1,5 +1,6 @@
+import time
+import torch
 import gymnasium as gym
-import torch.optim
 from torch.utils.tensorboard import SummaryWriter
 
 from models import Net
@@ -17,6 +18,7 @@ policy = Net(in_features=env.observation_space.shape[0], out_features=env.action
 buffer = PGExperienceBuffer(gamma=GAMMA)
 optimizer = torch.optim.Adam(lr=LEARNING_RATE, params=policy.parameters())
 agent = PGAgent(policy, optimizer)
+writer = SummaryWriter(comment='_REINFORCE')
 
 
 def train(n_episodes):
@@ -44,4 +46,13 @@ def train(n_episodes):
         episode_rewards.append(total_reward)
         print(f"Episode {episode + 1}\tTotal reward: {total_reward:.2f}")
         buffer.clear()
+
+        # Logging
+        writer.add_scalar("Loss", loss.item(), episode)
+        # writer.add_scalar("Loss/Time", loss.item(), time)
+        writer.add_scalar("Mean_10_Reward", sum(episode_rewards[-10:]) / 10, episode)
+        writer.add_scalar("Episode_Reward", total_reward, episode)
+        writer.add_scalar("Steps_per_Episode", actions.shape[0], episode)
+writer.flush()
+
 train(5000)
