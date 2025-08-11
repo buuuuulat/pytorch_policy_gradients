@@ -104,7 +104,7 @@ Not much better really
 
 ![Algorithm Comparison](data/graph1.png)
 
-However, in some cases, baseline show 2x boost in convergence
+However, in some cases, baseline shows 2x boost in convergence
 speed and highest reward
 
 ![Algorithm Comparison](data/graph2.png)
