@@ -47,7 +47,7 @@ def train(n_episodes):
         logits, actions, returns = buffer.prepare_buffer(returns, normalize_returns=True)
         advantage = returns - returns.mean() # Mean baseline subtraction
 
-        loss = agent.update_grads(logits, advantage, actions)
+        loss, entropy = agent.update_grads(logits, advantage, actions)
 
         total_reward = sum(buffer.rewards)
         episode_rewards.append(total_reward)
@@ -55,13 +55,14 @@ def train(n_episodes):
         buffer.clear()
 
         # Logging
-        if episode % 10 == 0:
+        if episode % 20 == 0:
             writer.add_scalar("Loss", loss.item(), episode)
             # writer.add_scalar("Loss/Time", loss.item(), time)
             writer.add_scalar("Mean_10_Reward", sum(episode_rewards[-10:]) / 10, episode)
             writer.add_scalar("Episode_Reward", total_reward, episode)
             writer.add_scalar("Steps_per_Episode", actions.shape[0], episode)
             writer.add_scalar("Mean_10_Advantage", sum(advantage[-10:]) / 10, episode)
+            writer.add_scalar("Entropy", entropy, episode)
 writer.flush()
 
 train(NUM_EPISODES)

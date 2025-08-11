@@ -1,4 +1,4 @@
-# PyTorch Implementation of Policy Gradient Methods (REINFORCE & Baseline)
+# PyTorch Implementation of Policy Gradient Methods
 
 <p align="center">
   <img src="https://gymnasium.farama.org/_images/lunar_lander.gif" width="300"/>
@@ -21,7 +21,7 @@ envs support, logging, etc.
 2. Rewrite the shitcode and comment it ✅
 3. Rewrite `algorithms/reinforce.py` ✅
 4. Rewrite `algorithms/baseline.py` ✅
-5. Implement `algorithms/a2c`
+5. Implement `algorithms/a2c` WIP
 6. Implement other things
 
 ---
@@ -56,6 +56,15 @@ Enhanced version with reduced variance:
 - Uses reward baseline: `b = 𝔼[R]`
 - Advantage function: `A(s,a) = R - b`
 - More stable learning dynamics (kind of)
+
+### Entropy bonus
+Entropy is implemented as:
+
+`entropy = -(probs * log_probs).sum(dim=1).mean()`
+
+And subtracted from loss function with entropy coefficient:
+
+`loss = pg_loss - entropy * entropy_coef`
 
 ---
 
@@ -99,8 +108,8 @@ while num_episodes < n:
 
 ---
 
-## Comparison between **Vanilla REINFORCE** and **REINFORCE with mean baseline**
-Not much better really
+## Comparison Between Methods
+No much difference between **reinforce** and **reinforce with baseline** on **LunarLander-v3**
 
 ![Algorithm Comparison](data/graph1.png)
 
@@ -108,6 +117,12 @@ However, in some cases, baseline shows 2x boost in convergence
 speed and highest reward
 
 ![Algorithm Comparison](data/graph2.png)
+
+With **Entropy Bonus** added (yellow graph), the results are as follows:
+- Much higher Mean Rewards
+- Almost 2x speed boost on 5000 episodes
+
+![Algorithm Comparison](data/graph3.png)
 
 ---
 
@@ -126,7 +141,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ---
 > **Educational Focus**: Clear implementations for learning Policy Gradient methods, with practical comparison between
-> vanilla and baseline-enhanced versions, so the speed and optimization were not the main goal.
+> different versions, so the speed and optimization were not the main goal.
 >
 > In order to optimize it, cuda support should be properly added and List usages in buffer should be avoided as well
-> as the transitions between torch Tensors and numpy Arrays.
+> as the transitions between PyTorch Tensors and NumPy Arrays.

@@ -27,22 +27,31 @@ class PGAgent:
         action = torch.multinomial(probs, num_samples=1).item()
         return action, logits
 
-    def update_grads(self, logits, returns, actions):
+    def update_grads(self, logits, returns, actions, entropy_coef=0.01):
         """
         Loss Calculation and gradient update: L = -sum(Selected Log Probs * Returns)
         :param logits: Tensor: [n_steps, n_actions]
         :param returns: Tensor: [n_steps, 1]
         :param actions: Tensor: [n_steps]
+        :param entropy_coef: If greater than 0, turns on the entropy bonus
         :return: Loss
         """
-        log_probs = F.log_softmax(logits, dim=-1)#.to(device=self.device)
+        log_probs = F.log_softmax(logits, dim=-1) # log π(a|s)
+        probs = torch.exp(log_probs)
+
         T = logits.shape[0]
-        # actions: [T], returns: [T,1]
+        # Actions: [T], returns: [T,1]
         selected = log_probs[torch.arange(T), actions]  # → [T]
-        # loss: -(sum over t) return_t * log π(a_t|s_t)
-        loss = -(selected * returns.squeeze(1)).sum()
+
+        # Policy Gradient Loss: -(sum over t) return_t * log π(a_t|s_t)
+        pg_loss = -(selected * returns.squeeze(1)).sum()
+
+        # Entropy bonus
+        entropy = -(probs * log_probs).sum(dim=1).mean()
+
+        loss = pg_loss - entropy * entropy_coef
 
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
-        return loss
+        return loss, entropy
