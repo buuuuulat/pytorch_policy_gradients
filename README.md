@@ -26,6 +26,20 @@ envs support, logging, etc.
 
 ---
 
+## Table of Contents
+- [Algorithms Overview](#algorithms-overview)
+  - [1. REINFORCE (Vanilla Policy Gradient)](#1-reinforce-vanilla-policy-gradient)
+  - [2. REINFORCE with Baseline](#2-reinforce-with-baseline)
+- [Installation](#installation)
+- [Run](#run)
+  - [How to run](#how-to-run)
+  - [Basic Training Process Overview](#basic-training-process-overview)
+- [Comparison between Vanilla REINFORCE and REINFORCE with mean baseline](#comparison-between-vanilla-reinforce-and-reinforce-with-mean-baseline)
+- [Contributing](#contributing)
+- [License](#license)
+
+---
+
 ## Algorithms Overview
 ### 1. REINFORCE (Vanilla Policy Gradient)
 The basic [Policy Gradient Method](https://en.wikipedia.org/wiki/Policy_gradient_method) implementation:
