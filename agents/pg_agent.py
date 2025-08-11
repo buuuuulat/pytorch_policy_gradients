@@ -14,7 +14,6 @@ class PGAgent:
         self.policy = policy
         self.optimizer = optimizer
 
-
     def select_action(self, state):
         """
         Selects action from probability distribution
@@ -36,7 +35,7 @@ class PGAgent:
         :param actions: Tensor: [n_steps]
         :return: Loss
         """
-        log_probs = F.log_softmax(logits, dim=-1)
+        log_probs = F.log_softmax(logits, dim=-1)#.to(device=self.device)
         T = logits.shape[0]
         # actions: [T], returns: [T,1]
         selected = log_probs[torch.arange(T), actions]  # → [T]

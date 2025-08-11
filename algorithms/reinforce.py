@@ -1,4 +1,3 @@
-#import time
 import torch
 import gymnasium as gym
 from torch.utils.tensorboard import SummaryWriter
@@ -12,6 +11,7 @@ from experience import PGExperienceBuffer
 ENV_NAME = "LunarLander-v3"
 GAMMA = 0.99
 LEARNING_RATE = 1e-3
+NUM_EPISODES = 5000
 
 env = gym.make(ENV_NAME)
 policy = Net(in_features=env.observation_space.shape[0], out_features=env.action_space.n)
@@ -48,11 +48,12 @@ def train(n_episodes):
         buffer.clear()
 
         # Logging
-        writer.add_scalar("Loss", loss.item(), episode)
-        # writer.add_scalar("Loss/Time", loss.item(), time)
-        writer.add_scalar("Mean_10_Reward", sum(episode_rewards[-10:]) / 10, episode)
-        writer.add_scalar("Episode_Reward", total_reward, episode)
-        writer.add_scalar("Steps_per_Episode", actions.shape[0], episode)
+        if episode % 10 == 0:
+            writer.add_scalar("Loss", loss.item(), episode)
+            # writer.add_scalar("Loss/Time", loss.item(), time)
+            writer.add_scalar("Mean_10_Reward", sum(episode_rewards[-10:]) / 10, episode)
+            writer.add_scalar("Episode_Reward", total_reward, episode)
+            writer.add_scalar("Steps_per_Episode", actions.shape[0], episode)
 writer.flush()
 
-train(5000)
+train(NUM_EPISODES)
