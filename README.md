@@ -84,7 +84,7 @@ environment.
 python3 algorithms/reinforce.py
 ```
 
-Note: Continuous action space is not yet supported.
+> Note: Continuous action space is not yet supported.
 
 ### Basic Training Process Overview
 ```pseudocode
