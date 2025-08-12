@@ -1,3 +1,3 @@
-from .pg_agent import PGAgent
+from .pg_agent import PGAgent, A2CAgent
 
-__all__ = ["PGAgent"]
+__all__ = ["PGAgent", "A2CAgent"]

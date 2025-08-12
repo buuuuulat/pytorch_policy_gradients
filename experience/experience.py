@@ -61,3 +61,32 @@ class PGExperienceBuffer:
         returns = returns.unsqueeze(1)  # [T,1]
         return logits, actions, returns
 
+
+class A2CBuffer(PGExperienceBuffer):
+    def __init__(self, gamma=0.99):
+        super().__init__(gamma=gamma)
+        self.values = []
+
+    def append(self, exp):
+        """
+        exp: [state, action, reward, logits, value]  (value — скалярный тензор/float)
+        """
+        super().append(exp[:4])
+        self.values.append(exp[4])
+
+    def clear(self):
+        super().clear()
+        self.values = []
+
+    def prepare_buffer(self, returns, normalize_returns=False):
+        logits, actions, returns = super().prepare_buffer(returns, normalize_returns)
+        values = torch.cat([v.reshape(1, 1) for v in self.values], dim=0)
+        return logits, actions, returns, values
+
+    def calculate_discounted_rewards(self, bootstrap_value):
+        res = []
+        sum_r = bootstrap_value
+        for r in reversed(self.rewards):
+            sum_r = sum_r * self.gamma + r
+            res.append(sum_r)
+        return list(reversed(res))

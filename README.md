@@ -21,8 +21,9 @@ envs support, logging, etc.
 2. Rewrite the shitcode and comment it ✅
 3. Rewrite `algorithms/reinforce.py` ✅
 4. Rewrite `algorithms/baseline.py` ✅
-5. Implement `algorithms/a2c` WIP
-6. Implement other things
+5. Implement `algorithms/a2c` ✅
+6. Add A2C to README.md WIP
+7. Implement PPO and SAC
 
 ---
 

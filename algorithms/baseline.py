@@ -1,5 +1,5 @@
 """
-Only thing that changed from reinforce is mean "baseline" substraction :)
+The only thing changed from reinforce is mean "baseline" substraction ;)
 """
 
 
@@ -17,6 +17,7 @@ ENV_NAME = "LunarLander-v3"
 GAMMA = 0.99
 LEARNING_RATE = 1e-3
 NUM_EPISODES = 5000
+ENTROPY_COEF = 0.01
 
 env = gym.make(ENV_NAME)
 policy = Net(in_features=env.observation_space.shape[0], out_features=env.action_space.n)
@@ -47,7 +48,7 @@ def train(n_episodes):
         logits, actions, returns = buffer.prepare_buffer(returns, normalize_returns=True)
         advantage = returns - returns.mean() # Mean baseline subtraction
 
-        loss, entropy = agent.update_grads(logits, advantage, actions)
+        loss, entropy = agent.update_grads(logits, advantage, actions, ENTROPY_COEF)
 
         total_reward = sum(buffer.rewards)
         episode_rewards.append(total_reward)

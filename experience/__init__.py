@@ -1,4 +1,4 @@
-from .experience import PGExperienceBuffer
+from .experience import PGExperienceBuffer, A2CBuffer
 
 
-__all__ = ["PGExperienceBuffer"]
+__all__ = ["PGExperienceBuffer", "A2CBuffer"]

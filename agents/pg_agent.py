@@ -1,5 +1,7 @@
 import torch
 import torch.nn.functional as F
+from torch.nn.utils import clip_grad_norm_
+
 
 
 class PGAgent:
@@ -55,3 +57,58 @@ class PGAgent:
         loss.backward()
         self.optimizer.step()
         return loss, entropy
+    
+
+class A2CAgent(PGAgent):
+    def __init__(self, policy, optimizer, value_coef=0.3, max_grad_norm=0.1):
+        super().__init__(policy, optimizer)
+        self.value_coef = value_coef
+        self.max_grad_norm = max_grad_norm
+
+    def select_action(self, state):
+        """
+        Selects action from probability distribution
+        :param state: Observation state from the environment
+        :return: Selected action and logits
+        """
+        state = torch.as_tensor(state, dtype=torch.float32).unsqueeze(0)
+        logits, value = self.policy(state)
+        probs = F.softmax(logits, dim=-1)
+
+        action = torch.multinomial(probs, num_samples=1).item()
+        return action, logits, value
+
+    def update_grads(self, logits, advantage, actions, values, returns, entropy_coef=0.01):
+        """
+        Loss Calculation and gradient update: L = -sum(Selected Log Probs * Advantage)
+        :param logits: Tensor: [n_steps, n_actions]
+        :param advantage: Tensor: [n_steps, 1]
+        :param actions: Tensor: [n_steps]
+        :param entropy_coef: If greater than 0, turns on the entropy bonus
+        :return: Loss
+        """
+        log_probs = F.log_softmax(logits, dim=-1) # log π(a|s)
+        probs = torch.exp(log_probs)
+
+        T = logits.shape[0]
+        # Actions: [T], advantage: [T]
+        selected = log_probs[torch.arange(T), actions]  # → [T]
+
+        # Policy Loss
+        policy_loss = -(selected * advantage.squeeze(1)).mean()
+
+        # Value Loss
+        value_loss = F.mse_loss(values, returns)
+
+        # Entropy bonus
+        entropy = -(probs * log_probs).sum(dim=1).mean()
+
+        loss = policy_loss + self.value_coef * value_loss - entropy * entropy_coef
+
+        self.optimizer.zero_grad()
+        loss.backward()
+        if self.max_grad_norm:
+            clip_grad_norm_(self.policy.parameters(), self.max_grad_norm)
+        self.optimizer.step()
+        return loss.detach(), entropy.detach(), policy_loss.detach(), value_loss.detach()
+
