@@ -112,3 +112,16 @@ class A2CAgent(PGAgent):
         self.optimizer.step()
         return loss.detach(), entropy.detach(), policy_loss.detach(), value_loss.detach()
 
+
+class A2CMultiEnvAgent(A2CAgent):
+    def __init__(self, policy, optimizer, value_coef=0.3, max_grad_norm=0.1):
+        super().__init__(policy, optimizer, value_coef, max_grad_norm)
+
+    def select_action(self, obs_np):
+        obs_t = torch.as_tensor(obs_np, dtype=torch.float32)
+        if obs_t.ndim == 1:
+            obs_t = obs_t.unsqueeze(0)
+        logits, values = self.policy(obs_t)  # [N, A], [N, 1]
+        dist = torch.distributions.Categorical(logits=logits)
+        actions = dist.sample()  # [N]
+        return actions.cpu().numpy(), logits, values
