@@ -65,7 +65,8 @@ Enhanced version with reduced variance:
 **It works**, but does not converge with single env. \
 **Multiple vectorized envs support** is needed in order to use **A2C**.
 
-**Multi-env support coming soon. Check out [drafts]() branch.**
+**Multi-env support coming soon. Check out [drafts](https://github.com/buuuuulat/pytorch_policy_gradients/tree/drafts)
+branch.**
 
 ![a2c](data/graph4.png)
 
