@@ -32,6 +32,7 @@ class PGExperienceBuffer:
         self.rewards = []
         self.logits = []
 
+    @torch.no_grad()
     def calculate_discounted_rewards(self):
         """
         Calculates sum of maximum discounted rewards from current step till the end for every step
@@ -83,6 +84,7 @@ class A2CBuffer(PGExperienceBuffer):
         values = torch.cat([v.reshape(1, 1) for v in self.values], dim=0)
         return logits, actions, returns, values
 
+    @torch.no_grad()
     def calculate_discounted_rewards(self, bootstrap_value):
         res = []
         sum_r = bootstrap_value
