@@ -22,8 +22,9 @@ envs support, logging, etc.
 3. Rewrite `algorithms/reinforce.py` ✅
 4. Rewrite `algorithms/baseline.py` ✅
 5. Implement `algorithms/a2c` ✅
-6. Add A2C to README.md WIP
-7. Implement PPO and SAC
+6. Add A2C to README.md
+7. Add vec env support for A2C
+8. Implement PPO and SAC
 
 ---
 
@@ -57,6 +58,18 @@ Enhanced version with reduced variance:
 - Uses reward baseline: `b = 𝔼[R]`
 - Advantage function: `A(s,a) = R - b`
 - More stable learning dynamics (kind of)
+
+### 3. A2C
+`algorithms/a2c.py`
+
+**It works**, but does not converge with single env. \
+**Multiple vectorized envs support** is needed in order to use **A2C**.
+
+**Multi-env support coming soon. Check out [drafts]() branch.**
+
+![a2c](data/graph4.png)
+
+**Much better results** on **A2C** with **8 vectorized envs** compared to **reinforce** and **baseline**
 
 ### Entropy bonus
 Entropy is implemented as:
