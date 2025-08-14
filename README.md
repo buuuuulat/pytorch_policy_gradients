@@ -4,25 +4,25 @@
   <img src="https://gymnasium.farama.org/_images/lunar_lander.gif" width="300"/>
 </p>
 
-Clean PyTorch implementations of PG algorithms with comparisons, gymnasium
+Clean PyTorch implementations of PG algorithms with comparisons, Gymnasium
 envs support, logging, etc.
 
 ![Static Badge](https://img.shields.io/badge/status-WIP-blue)
 
 ---
 
-## Code is being completely refactored
+## Code is being refactored
 <p align="center">
   <img src="https://i.pinimg.com/236x/6b/7a/f4/6b7af47cf6889a90ea178ed89c089a82.jpg" width="100"/>
 </p>
 
 ### Work in progress:
-1. Implement reusable Agent, Buffer, and Net files/classes: ✅
-2. Rewrite the shitcode and comment it ✅
+1. Implement reusable Agent, Buffer, and Net files/classes ✅
+2. Rewrite legacy code and add comments ✅
 3. Rewrite `algorithms/reinforce.py` ✅
 4. Rewrite `algorithms/baseline.py` ✅
 5. Implement `algorithms/a2c` ✅
-6. Add A2C to README.md
+6. Add A2C to README.md ✅
 7. Add vec env support for A2C
 8. Implement PPO and SAC
 
@@ -32,17 +32,20 @@ envs support, logging, etc.
 - [Algorithms Overview](#algorithms-overview)
   - [1. REINFORCE (Vanilla Policy Gradient)](#1-reinforce-vanilla-policy-gradient)
   - [2. REINFORCE with Baseline](#2-reinforce-with-baseline)
+  - [3. A2C](#3-a2c)
+  - [Entropy Bonus](#entropy-bonus)
 - [Installation](#installation)
 - [Run](#run)
   - [How to run](#how-to-run)
   - [Basic Training Process Overview](#basic-training-process-overview)
-- [Comparison between Vanilla REINFORCE and REINFORCE with mean baseline](#comparison-between-vanilla-reinforce-and-reinforce-with-mean-baseline)
+- [Comparison Between Methods](#comparison-between-methods)
 - [Contributing](#contributing)
 - [License](#license)
 
 ---
 
 ## Algorithms Overview
+
 ### 1. REINFORCE (Vanilla Policy Gradient)
 The basic [Policy Gradient Method](https://en.wikipedia.org/wiki/Policy_gradient_method) implementation:
 1. **Full episode play**
@@ -62,24 +65,42 @@ Enhanced version with reduced variance:
 ### 3. A2C
 `algorithms/a2c.py`
 
-**It works**, but does not converge with single env. \
-**Multiple vectorized envs support** is needed in order to use **A2C**.
+**Status:** works, but single-env setup does **not** reliably converge.  
+**Multi-env (vectorized) support** is required for proper A2C performance.
 
-**Multi-env support coming soon. Check out [drafts](https://github.com/buuuuulat/pytorch_policy_gradients/tree/drafts)
-branch.**
+> Multi-env support is coming. See the [drafts branch](https://github.com/buuuuulat/pytorch_policy_gradients/tree/drafts).
 
-![a2c](data/graph4.png)
+**Core idea:** actor–critic with a shared backbone (`A2CNet`) and two heads:
+- **Actor:** categorical policy over discrete actions
+- **Critic:** state-value estimate `V(s)`
 
-**Much better results** on **A2C** with **8 vectorized envs** compared to **reinforce** and **baseline**
+**Training signal:**
+- Advantages: `A_t = R_t − V_t`
+- Policy loss: `L_π = − E[ log π(a_t|s_t) * A_t ]`
+- Value loss: `L_V = MSE(V_t, R_t)`
+- Entropy bonus: see [Entropy Bonus](#entropy-bonus)
 
-### Entropy bonus
+**Bootstrapping & unrolls:**
+- Returns are bootstrapped with the critic’s value at episode boundary (or `0` on terminal).
+- Optional unrolling via `UNROLL_STEPS > 0` allows updates inside long episodes.
+
+**Implementation bits:**
+- Agent: `A2CAgent` (policy/value losses, entropy, grad-clip)
+- Buffer: `A2CBuffer` (stores values; discounted returns with bootstrap)
+- Model: `A2CNet` (shared MLP → actor & critic heads)
+
+**Results (LunarLander-v3):**  
+See **A2C** curve here → ![a2c](data/graph4.png)  
+With **8 vectorized envs** A2C shows markedly better results vs. REINFORCE/baseline.
+
+### Entropy Bonus
 Entropy is implemented as:
 
 `entropy = -(probs * log_probs).sum(dim=1).mean()`
 
 And subtracted from loss function with entropy coefficient:
 
-`loss = pg_loss - entropy * entropy_coef`
+`loss = policy_loss + value_coef * value_loss - entropy * entropy_coef`
 
 ---
 
@@ -88,9 +109,10 @@ And subtracted from loss function with entropy coefficient:
 ```bash
 git clone https://github.com/buuuuulat/pytorch_policy_gradients.git
 cd pytorch_policy_gradients
-```
+````
 
 2. Install requirements:
+
 ```bash
 pip install torch gymnasium numpy
 ```
@@ -98,19 +120,27 @@ pip install torch gymnasium numpy
 ---
 
 ## Run
+
 ### How to run
+
 All algorithms can be found in the `algorithms/` directory and are ready
-to be used. You can adjust hyperparameters and choose any gymnasium compatible
+to be used. You can adjust hyperparameters and choose any Gymnasium-compatible
 environment.
 
 #### Example Usage
+
 ```bash
+# REINFORCE
 python3 algorithms/reinforce.py
+
+# A2C
+python3 algorithms/a2c.py
 ```
 
 > Note: Continuous action space is not yet supported.
 
 ### Basic Training Process Overview
+
 ```pseudocode
 while num_episodes < n:
     for step in episode:
@@ -124,25 +154,29 @@ while num_episodes < n:
 ---
 
 ## Comparison Between Methods
-No much difference between **reinforce** and **reinforce with baseline** on **LunarLander-v3**
+
+Not much difference between **REINFORCE** and **REINFORCE with baseline** on **LunarLander-v3**:
 
 ![Algorithm Comparison](data/graph1.png)
 
-However, in some cases, baseline shows 2x boost in convergence
-speed and highest reward
+However, in some cases, baseline shows \~2× boost in convergence
+speed and the highest reward:
 
 ![Algorithm Comparison](data/graph2.png)
 
 With **Entropy Bonus** added (yellow graph), the results are as follows:
-- Much higher Mean Rewards
-- Almost 2x speed boost on 5000 episodes
+
+* Much higher mean rewards
+* Almost 2× speed boost over 5000 episodes
 
 ![Algorithm Comparison](data/graph3.png)
 
 ---
 
 ## Contributing
+
 Contributions are welcome! Please follow these steps:
+
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/improvement`)
 3. Commit changes (`git commit -am 'Add new feature'`)
@@ -152,11 +186,12 @@ Contributions are welcome! Please follow these steps:
 ---
 
 ### License
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+
 > **Educational Focus**: Clear implementations for learning Policy Gradient methods, with practical comparison between
-> different versions, so the speed and optimization were not the main goal.
+> versions, so speed and heavy optimizations were not the main goal.
 >
-> In order to optimize it, cuda support should be properly added and List usages in buffer should be avoided as well
-> as the transitions between PyTorch Tensors and NumPy Arrays.
+> To optimize further, add proper CUDA support and avoid Python lists in buffers as well as frequent Tensor↔NumPy transfers.
